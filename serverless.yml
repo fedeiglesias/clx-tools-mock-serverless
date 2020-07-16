@@ -1,8 +1,8 @@
 service: clx-tools-mock-serverless
 
 # app and org for use with dashboard.serverless.com
-#app: clx-tools-mock-serverless
-#org: fedeiglesias
+app: clx-tools-mock-serverless
+org: fedeiglesias
 
 plugins:
   - serverless-pseudo-parameters
