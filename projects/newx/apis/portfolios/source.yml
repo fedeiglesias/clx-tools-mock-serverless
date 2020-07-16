@@ -1,0 +1,1197 @@
+openapi: 3.0.0
+info:
+  description: >
+    CREALOGIX Digital Banking Hub: Asset Portfolio API
+
+    **Portfolio-API** offers access to portfolio data.
+
+    # Paging #
+
+    If the result of request is a list, it may be split in pages using the __size__ parameter.
+
+    In this case the result provides the standard HAL page __resource links__ (__first__, __last__, __next__, __previous__ and __self__). A __page meta data__ summary (__page number__, __page size__, __total number of pages__ and __total number of items__) is also provided.
+
+    # Portfolios - General Entry Points #
+
+    The main entry point `/portfolios` provides a simple list of all porfolios  visible according to the calling party's permissions. 
+
+
+    The optional parameter __customerId__ restricts the result to the portfolios owned by a customers.
+
+
+    Each __portfolio__ provides a __link__ to the __assets__, to the __customer  information__, to the __maturities__, to the __performance__.  A __self__ link is also available.
+
+    # Portfolio Assets End Points #
+
+    A *PortfolioAssets* is an artifact holding some account / custody account  common fields.
+
+    * `/portfolios/{portfolioId}/assets` provides a list of assets visible after applying the calling party's permissions.  
+
+    * Using the optional parameter __assetType=ACCOUNT|CUSTODY__ you may restrict the result to a single asset type. 
+
+    * The list may be sorted using the optional parameter __sortBy=assetType__.
+
+    * The direction of the sort order is determined by the optional parameter __sortOrderType=ASC|DESC__.
+
+    * `/portfolios/{portfolioId}/assets/{assetId}` provides a single asset.
+
+
+    Each __asset__ provides a __link__ to the __account/cuac__ and to the __portfolio__. A __self__ link is also available.
+
+    # Portfolio Maturity End Points #
+
+    * `/portfolios/{portfolioId}/maturities` the list of the maturities.
+
+    * `/portfolios/{portfolioId}/maturities/{maturityId}` a sigle maturity.
+
+
+    Each __maturity__ provides a __link__ to the __portfolio__. A __self__ link is also available.    
+
+    # Portfolio Performance End Point #
+
+    * `/portfolios/{portfolioId}/performance` returns the performance.
+
+
+    The result provides a __link__ to the __portfolio__. A __self__ link is also available.
+  version: 1.0.0
+  title: Asset Portfolio API
+  contact:
+    name: Andreas Huck
+    email: andreas.huck@crealogix.com
+  license:
+    name: CREALOGIX
+paths:
+  /assets/portfolios/{tenantId}/v1/portfolios:
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+      - name: tppIdParam
+        in: header
+        description: Distinct 3rd party identifer as obtained from preta.eu-registration
+        required: false
+        schema:
+          type: string
+      - name: X-Correlation-Id
+        in: header
+        description: Request identifier to trace a request route across the subsystems.
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Get all portfolios
+      description: Provides a simple list of all porfolios visible according to the calling
+        party's permissions.
+      operationId: getAllPortfolios
+      parameters:
+        - name: customerId
+          in: query
+          description: The implementation internal identifier, session based
+          required: false
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: page
+          in: query
+          description: The page number.
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 0
+        - name: size
+          in: query
+          description: The number of portfolios per page.
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/PortfolioPageDto"
+        "400":
+          description: Bad request
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: PORTFOLIOS_BAD_REQUEST,
+                  path: "/assets/portfolio/{tenantId}/v1/portfolios"
+                }]
+        "403":
+          description: Forbidded
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: PORTFOLIOS_UNAUTHORIZED,
+                  path: "/assets/portfolio/{tenantId}/v1/portfolios"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: PORTFOLIOS_NOT_FOUND,
+                  path: "/assets/portfolio/{tenantId}/v1/portfolios"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/portfolio/{tenantId}/v1/portfolios"
+                }]
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/portfolio#read"
+  "/assets/portfolio/{tenantId}/v1/portfolios/{portfolioId}":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+      - name: tppIdParam
+        in: header
+        description: Distinct 3rd party identifer as obtained from preta.eu-registration
+        required: false
+        schema:
+          type: string
+      - name: X-Correlation-Id
+        in: header
+        description: Request identifier to trace a request route across the subsystems.
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Get portfolio.
+      description: Provides a porfolios if it is visible according to the calling party's
+        permissions.
+      operationId: getPortfolio
+      parameters:
+        - name: portfolioId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/PortfolioDto"
+        "400":
+          description: Bad request
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: PORTFOLIO_BAD_REQUEST,
+                  path: "/assets/portfolio/{tenantId}/v1/portfolios/{portfolioId}"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: PORTFOLIO_UNAUTHORIZED,
+                  path: "/assets/portfolio/{tenantId}/v1/portfolios/{portfolioId}"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: PORTFOLIO_NOT_FOUND,
+                  path: "/assets/portfolio/{tenantId}/v1/portfolios/{portfolioId}"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/portfolio/{tenantId}/v1/portfolios/{portfolioId}"
+                }]
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/portfolio#read"
+  "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/assets":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string  
+      - name: tppIdParam
+        in: header
+        description: Distinct 3rd party identifer as obtained from preta.eu-registration
+        required: false
+        schema:
+          type: string
+      - name: X-Correlation-Id
+        in: header
+        description: Request identifier to trace a request route across the subsystems.
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Get portfolio's assets.
+      description: Provides a list of assets visible after applying the calling party's
+        permissions.
+      operationId: getPortfolioAssets
+      parameters:
+        - name: portfolioId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: assetType
+          in: query
+          description: Filter to restrict the result to a single asset type
+          required: false
+          schema:
+            $ref: "#/components/schemas/PortfolioAssetType"
+        - name: page
+          in: query
+          description: The page number.
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 0
+        - name: size
+          in: query
+          description: The number of assets per page.
+          required: false
+          schema:
+            type: integer
+            default: 10
+        - name: sortBy
+          in: query
+          description: What to sort.
+          required: false
+          schema:
+            $ref: "#/components/schemas/PortfolioAssetType"
+        - name: sortOrderType
+          in: query
+          description: How to sort.
+          required: false
+          schema:
+            $ref: "#/components/schemas/SortOrderType"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/PortfolioAssetsPageDto"
+        "400":
+          description: Bad request
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: PORTFOLIO_ASSETS_BAD_REQUEST,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/assets"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: PORTFOLIO_ASSETS_UNAUTHORIZED,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/assets"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: PORTFOLIO_ASSETS_NOT_FOUND,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/assets"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/assets"
+                }]
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/portfolio#read"
+  "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/assets/{assetId}":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+      - name: tppIdParam
+        in: header
+        description: Distinct 3rd party identifer as obtained from preta.eu-registration
+        required: false
+        schema:
+          type: string
+      - name: X-Correlation-Id
+        in: header
+        description: Request identifier to trace a request route across the subsystems.
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Get portfolio asset.
+      description: Provides an asset if visible after applying the calling party's
+        permissions.
+      operationId: getPortfolioAsset
+      parameters:
+        - name: portfolioId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: assetId
+          in: path
+          description: The implementation internal identifier, session based.
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/PortfolioAssetDto"
+        "400":
+          description: Bad request
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: PORTFOLIO_ASSET_BAD_REQUEST,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/assets/{assetId}"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: PORTFOLIO_ASSET_UNAUTHORIZED,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/assets/{assetId}"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: PORTFOLIO_ASSET_NOT_FOUND,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/assets/{assetId}"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/assets/{assetId}"
+                }]
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/portfolio#read"
+  "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/maturities":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+      - name: tppIdParam
+        in: header
+        description: Distinct 3rd party identifer as obtained from preta.eu-registration
+        required: false
+        schema:
+          type: string
+      - name: X-Correlation-Id
+        in: header
+        description: Request identifier to trace a request route across the subsystems.
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Get portfolio's maturities.
+      description: Provides a list of maturities visible after applying the calling party's
+        permissions.
+      operationId: getPortfolioMaturities
+      parameters:
+        - name: portfolioId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: page
+          in: query
+          description: The page number.
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 0
+        - name: size
+          in: query
+          description: The number of maturities per page.
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/PortfolioMaturityPageDto"
+        "400":
+          description: Bad request
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: PORTFOLIO_MATURITIES_BAD_REQUEST,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/maturities"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: PORTFOLIO_MATURITIES_UNAUTHORIZED,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/maturities"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: PORTFOLIO_MATURITIES_NOT_FOUND,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/maturities"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/maturities"
+                }]
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/portfolio#read"
+  "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/maturities/{maturityId}":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+      - name: tppIdParam
+        in: header
+        description: Distinct 3rd party identifer as obtained from preta.eu-registration
+        required: false
+        schema:
+          type: string
+      - name: X-Correlation-Id
+        in: header
+        description: Request identifier to trace a request route across the subsystems.
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Get a portfolio's maturity.
+      description: Provides a list of maturities visible after applying the calling party's
+        permissions.
+      operationId: getPortfolioMaturity
+      parameters:
+        - name: portfolioId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: maturityId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/PortfolioMaturityDto"
+        "400":
+          description: Bad request
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: PORTFOLIO_MATURITY_BAD_REQUEST,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/maturities/{maturityId}"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: PORTFOLIO_MATURITY_UNAUTHORIZED,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/maturities/{maturityId}"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: PORTFOLIO_MATURITY_NOT_FOUND,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/maturities/{maturityId}"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/maturities/{maturityId}"
+                }]
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/portfolio#read"
+  "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/performance":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+      - name: tppIdParam
+        in: header
+        description: Distinct 3rd party identifer as obtained from preta.eu-registration
+        required: false
+        schema:
+          type: string
+      - name: X-Correlation-Id
+        in: header
+        description: Request identifier to trace a request route across the subsystems.
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Get portfolio's performance.
+      description: Provides a list of maturities visible after applying the calling party's
+        permissions.
+      operationId: getPortfolioPerformance
+      parameters:
+        - name: portfolioId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/PortfolioPerformanceDto"
+        "400":
+          description: Bad request
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: PORTFOLIO_PERFORMANCE_BAD_REQUEST,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/performance"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: PORTFOLIO_PERFORMANCE_UNAUTHORIZED,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/performance"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: PORTFOLIO_PERFORMANCE_NOT_FOUND,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/performance"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/porfolios/{tenantId}/v1/portfolios/{portfolioId}/performance"
+                }]
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/portfolio#read"
+servers:
+  - url: //api.crealogix.com/
+components:
+  securitySchemes:
+    OIDC:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://api.crealogix.com/oauth/authorize
+          scopes:
+            "https://api.crealogix.com/assets/portfolio#read": View portfolio
+  schemas:
+    AmountDto:
+      type: object
+      required:
+        - currencyIsoCode
+        - value
+      properties:
+        currencyIsoCode:
+          description: currency code (ISO 4217).
+          type: string
+          example: CHF
+        value:
+          type: number
+          format: double
+          description: unformatted value of the amount
+    CurrencyEntryType:
+      description: >
+        Describes the origin of the value
+
+        * SINGLE_CURRENCY_VALUE (1) means the value was already expressed in the givn currency.
+
+        * SINGLE_CURRENCY_SUM (2) means the value is a sum of values, but every value was already expressed in the given currency.
+
+        * MULTIPLE_CURRENCY_SUM (3) the value is a sum of values, at least one of these values was originally expressed in a different currency and was converted.
+      type: string
+      enum:
+        - SINGLE_CURRENCY_VALUE
+        - MULTIPLE_CURRENCY_SUM
+        - SINGLE_CURRENCY_SUM
+      default: SINGLE_CURRENCY_VALUE
+    PerformancePeriodType:
+      description: The calculation period for the performance.
+      type: string
+      enum:
+        - TOTAL
+        - MONTHLY
+        - YTD
+        - YEARLY
+      example: YEARLY
+    PortfolioDto:
+      description: The portfolio.
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: "#/components/schemas/Identifier"
+        customerId:
+          $ref: "#/components/schemas/Identifier"
+        name:
+          description: display name of the portfolio
+          type: string
+          example: my portfolio
+        amount:
+          $ref: "#/components/schemas/AmountDto"
+    PortfolioAssetDto:
+      description: >
+        Artifact that holds some account / custody account common fields. The
+        portfolio asset provides a link to the data of the asset and the type of
+        the asset.
+      type: object
+      required:
+        - assetType
+        - id
+      properties:
+        assetNumber:
+          description: arbitrary, business related, unique bank identification number.
+          type: string
+          example: 123456-ABC
+        assetType:
+          $ref: "#/components/schemas/PortfolioAssetType"
+        id:
+          $ref: "#/components/schemas/Identifier"
+        amount:
+          $ref: "#/components/schemas/AmountDto"
+    PortfolioAssetType:
+      description: qualifier for the asset link.
+      type: string
+      enum:
+        - ACCOUNT
+        - CUSTODY
+      example: ACCOUNT
+    SortOrderType:
+      description: direction of the sort.
+      type: string
+      enum:
+        - ASC
+        - DESC
+      example: ASC
+    PortfolioAssetsListDto:
+      description: List of the assets of the portfolio.
+      type: object
+      properties:
+        assets:
+          type: array
+          items:
+            $ref: "#/components/schemas/PortfolioAssetDto"
+    PortfolioAssetsPageDto:
+      description: Paging elements for porfolio assets.
+      type: object
+      required:
+        - page
+      properties:
+        _embedded:
+          $ref: "#/components/schemas/PortfolioAssetsListDto"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+    PortfolioListDto:
+      description: List of portfolios.
+      type: object
+      properties:
+        portfolios:
+          type: array
+          items:
+            $ref: "#/components/schemas/PortfolioDto"
+    PortfolioMaturityDto:
+      description: The portfolio maturity information.
+      type: object
+      required:
+        - id
+      properties:
+        currencyIsoCode:
+          description: currency code (ISO 4217).
+          type: string
+          example: CHF
+        currencyEntryType:
+          $ref: "#/components/schemas/CurrencyEntryType"
+        factor:
+          description: >
+            This is the scale of the value (e.g. 1, 10, 100, 1000, ...).
+
+            To obtain the real value the given value must be multiplied by the factor.
+
+            The default is 1 (identity), the given value is already the real one. 
+          type: integer
+          format: int32
+          default: 1
+          example: 1
+        id:
+          $ref: "#/components/schemas/Identifier"
+        onCall:
+          type: number
+          format: double
+          example: 123456.789
+        valueDate:
+          description: ISO 8601 date.
+          type: string
+          format: date
+          example: 20180514
+    PortfolioMaturityListDto:
+      description: List of portfolio maturities.
+      type: object
+      properties:
+        maturities:
+          type: array
+          items:
+            $ref: "#/components/schemas/PortfolioMaturityDto"
+    PortfolioMaturityPageDto:
+      description: Paging elements for portfolio's maturities.
+      type: object
+      required:
+        - page
+      properties:
+        _embedded:
+          $ref: "#/components/schemas/PortfolioMaturityListDto"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+    PortfolioPageDto:
+      description: Paging elements for portfolios.
+      type: object
+      required:
+        - page
+      properties:
+        _embedded:
+          $ref: "#/components/schemas/PortfolioListDto"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+    PortfolioPerformanceDto:
+      description: The portfolio performance information.
+      type: object
+      required:
+        - id
+      properties:
+        accruedInterestBalance:
+          description: accrued interest balance from sales (+) and purchases (-)
+          type: number
+          format: double
+          example: 123456.789
+        accruedInterestChange:
+          description: change due to accrued interest
+          type: number
+          format: double
+          example: 123456.789
+        endDate:
+          description: ISO 8601 date.
+          type: string
+          format: date
+          example: 20180514
+        id:
+          $ref: "#/components/schemas/Identifier"
+        netIncome:
+          type: number
+          format: double
+          example: 123456.789
+        performancePeriod:
+          $ref: "#/components/schemas/PerformancePeriodType"
+        startDate:
+          description: ISO 8601 date.
+          type: string
+          format: date
+          example: 20180514
+        tax:
+          description: paid withholding tax (VST)
+          type: number
+          format: double
+          example: 123456.789
+    Identifier:
+      description: Identifier object
+      type: object
+      example: 123456789
+    Link:
+      type: object
+      required:
+        - href
+      properties:
+        href:
+          type: string
+          example: /assets/portfolios/{tenantId}/v1/portfolios?page=0&size=10
+        templated:
+          type: boolean
+          example: false
+    PageMetadata:
+      description: The summary of paging.
+      type: object
+      properties:
+        number:
+          type: integer
+          format: int64
+          example: 0
+        size:
+          type: integer
+          format: int64
+          example: 4
+        totalElements:
+          type: integer
+          format: int64
+          example: 10
+        totalPages:
+          type: integer
+          format: int64
+          example: 5
+    ResponseStatusDto:
+      description: Generic response status object.
+      type: object
+      required:
+        - _timestamp
+        - _status
+        - _messages
+      properties:
+        _timestamp:
+          description: The exact date and time when the response was received, ISO 8601 date and time.
+          type: string
+          format: date-time
+        _status:
+          description: Shows if the message was successful or contains errors. This is
+            mostly helpful for early processing by javascript clients. Status
+            depends also on HTTP-Status codes (HTTP-Code != 2xx = false).
+          type: boolean
+        _messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatusMessageDto"
+    StatusMessageDto:
+      type: object
+      description: Common response message object (Optional for success messages).
+      required:
+        - code
+        - category
+        - text
+        - path
+      properties:
+        code:
+          description: Short Code describing the message.
+          type: string
+        category:
+          $ref: "#/components/schemas/StatusMessageCategoryType"
+        text:
+          type: string
+          description:  The verbose message text.
+        path:
+          description: >-
+            * JSON path for field validation. If not set, the message is a
+            global message. If this field is set the text contains the field
+            specific message.
+
+            * Elements of the JSON-structure will be separated by "." and arrays will be represented with [].
+          type: string
+    StatusMessageCategoryType:
+      description: Category, which defines the severity of the message.
+      type: string
+      enum:
+        - NORMAL
+        - INFO
+        - SUCCESS
+        - ERROR
+        - WARN

@@ -1,0 +1,31 @@
+{
+  "name": "clx-tools-mock-serverless",
+  "version": "1.0.0",
+  "description": "Mock serverless Tool",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fedeiglesias/clx-mock-serverless.git"
+  },
+  "author": "Federico Iglesias",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/fedeiglesias/clx-mock-serverless/issues"
+  },
+  "homepage": "https://github.com/fedeiglesias/clx-mock-serverless#readme",
+  "devDependencies": {
+    "serverless-plugin-scripts": "^1.0.2",
+    "serverless-pseudo-parameters": "^2.5.0"
+  },
+  "dependencies": {
+    "@apidevtools/json-schema-ref-parser": "^9.0.1",
+    "js-yaml": "^3.14.0",
+    "json-schema-faker": "^0.5.0-rcv.24"
+  }
+}

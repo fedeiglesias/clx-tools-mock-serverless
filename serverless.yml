@@ -1,0 +1,37 @@
+service: clx-tools-mock-serverless
+
+# app and org for use with dashboard.serverless.com
+#app: clx-tools-mock-serverless
+#org: fedeiglesias
+
+plugins:
+  - serverless-pseudo-parameters
+  - serverless-plugin-scripts
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: us-east-1
+
+custom:
+  domain:
+    # AWS domain id
+    id: "Z008637234M1UDGEMIGLS"
+    name: pixium.io
+    subdomain: clx.pixium.io
+    # AWS certificate domain arn
+    certificateArn: arn:aws:acm:us-east-1:989257975727:certificate/af08c4cc-6b8d-4b21-a831-dce800e7001c
+
+  scripts:
+    hooks:
+      # Custom Hooks
+
+functions:
+  CLXEndpointHandler:
+    handler: api/endpoint.handler
+    memorySize: 128
+    description: Endpoints Handler
+
+resources:
+  - ${file(./src/index.js)}

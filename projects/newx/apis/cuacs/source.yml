@@ -1,0 +1,1082 @@
+openapi: 3.0.0
+info:
+  description: >
+    CREALOGIX Digital Banking Hub: Asset Custody Account API
+
+    **Custody-Account-API** offers access to custody account data.
+
+    # Paging #
+
+    If the result of request is a list, it may be split in pages using the __size__ parameter.
+
+    In this case the result provides the standard HAL page __resource links__ (__first__, __last__, __next__, __previous__ and __self__). A __page meta data__ summary (__page number__, __page size__, __total number of pages__ and __total number of items__) is also provided.
+
+    # Custody Accounts - General Entry Points #
+
+    The main entry point `/cuacs` provides a simple list of all custody accounts  visible according to the calling party's permissions. 
+
+
+    The optional parameter __customerId__ restricts the result to the custody accounts owned by a customers.
+
+    The optional parameter __portfolioId__ restricts the result to the custody accounts contained into the given portfolio.
+
+
+    Each __portfolio__ provides a __link__ to the __customer information__, to the __portfolio__, to the __positions__ and to the __transactions__.  A __self__ link is also available.
+
+    # Custody Account Positions End Points #
+
+    * `/cuacs/{cuacsId}/positions` provides a list of positions visible after applying the calling party's permissions.  
+
+    * `/cuacs/{cuacsId}/positions/{positionId}` provides a single position.
+
+
+    The optional parameter __depositoryId__ restricts the result to the positions having the same depository.
+
+    The optional parameter __securityId__ restricts the result to the positions having the same security.
+
+
+    Each __position__ provides a __link__ to the __custody account__, to the __depository__, to the __security__, and to the __transactions__. A __self__ link is also available.
+
+    # Custody Account Transactions End Points #
+
+    * `/cuacs/{cuacId}/transactions` provides the list of custody account transactions.
+
+    * `/cuacs/{cuacId}/transactions/{transactionId}` provides a custody account transaction.
+
+
+    The optional parameter __orderId__ restricts the result to all transaction belonging to the same order.
+
+    The optional parameter __positionId__ restricts the result to all transactions belonging to a custody account position.
+
+
+    Each __transaction__ provides a __link__ to the __custody account__, to the __repository__, to the __order__, to the __position__ and to the __security__. A __self__ link is also available.    
+  version: 1.0.0
+  title: Asset Custody Account API
+  contact:
+    name: Andreas Huck
+    email: andreas.huck@crealogix.com
+  license:
+    name: CREALOGIX
+paths:
+  /assets/cuacs/{tenantId}/v1/cuacs:
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+      - name: tppIdParam
+        in: header
+        description: Distinct 3rd party identifer as obtained from preta.eu-registration
+        required: false
+        schema:
+          type: string
+      - name: X-Correlation-Id
+        in: header
+        description: Request identifier to trace a request route across the subsystems.
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Get all custody accounts
+      description: Provides a simple list of all custody accounts visible according to the
+        calling party's permissions.
+      operationId: getAllCuacs
+      parameters:
+        - name: customerId
+          in: query
+          description: The implementation internal identifier, session based
+          required: false
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: portfolioId
+          in: query
+          description: The implementation internal identifier, session based
+          required: false
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: page
+          in: query
+          description: The page number.
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 0
+        - name: size
+          in: query
+          description: The number of custody accounts per page.
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/CustodyAccountPageDto"
+        "400":
+          description: Bad request
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: CUACS_BAD_REQUEST,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: CUACS_UNAUTHORIZED,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: CUACS_NOT_FOUND,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs"
+                }]
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/cuac#read"
+  "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+      - name: tppIdParam
+        in: header
+        description: Distinct 3rd party identifer as obtained from preta.eu-registration
+        required: false
+        schema:
+          type: string
+      - name: X-Correlation-Id
+        in: header
+        description: Request identifier to trace a request route across the subsystems.
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Get a custody account.
+      description: Provides a custody account.
+      operationId: getCuac
+      parameters:
+        - name: cuacId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/CustodyAccountDto"
+        "400":
+          description: Bad request
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: CUAC_BAD_REQUEST,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: CUAC_UNAUTHORIZED,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: CUAC_NOT_FOUND,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}"
+                }]
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/cuac#read"
+  "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/positions":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string    
+      - name: tppIdParam
+        in: header
+        description: Distinct 3rd party identifer as obtained from preta.eu-registration
+        required: false
+        schema:
+          type: string
+      - name: X-Correlation-Id
+        in: header
+        description: Request identifier to trace a request route across the subsystems.
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Get all custody account's positions
+      description: Provides a simple list of all custody account's positions visible
+        according to the calling party's permissions.
+      operationId: getAllCuacPositions
+      parameters:
+        - name: cuacId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: depositoryId
+          in: query
+          description: The implementation internal identifier, session based
+          required: false
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: securityId
+          in: query
+          description: The implementation internal identifier, session based
+          required: false
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: page
+          in: query
+          description: The page number.
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 0
+        - name: size
+          in: query
+          description: The number of custody account positions per page.
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/CustodyAccountPositionPageDto"
+        "400":
+          description: Bad request
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: CUAC_POSITIONS_BAD_REQUEST,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/positions"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: CUAC_POSITIONS_UNAUTHORIZED,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/positions"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: CUAC_POSITIONS_NOT_FOUND,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/positions"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/positions"
+                }]
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/cuac#read"
+  "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/positions/{positionId}":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+      - name: tppIdParam
+        in: header
+        description: Distinct 3rd party identifer as obtained from preta.eu-registration
+        required: false
+        schema:
+          type: string
+      - name: X-Correlation-Id
+        in: header
+        description: Request identifier to trace a request route across the subsystems.
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Get a custody account's position
+      description: Provides a custody account's position.
+      operationId: getAllCuacsPosition
+      parameters:
+        - name: cuacId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: positionId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/CustodyAccountPositionDto"
+        "400":
+          description: Bad request
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: CUAC_POSITION_BAD_REQUEST,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/positions/{positionId}"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: CUAC_POSITION_UNAUTHORIZED,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/positions/{positionId}"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: CUAC_POSITION_NOT_FOUND,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/positions/{positionId}"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/positions/{positionId}"
+                }]
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/cuac#read"
+  "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/transactions":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+      - name: tppIdParam
+        in: header
+        description: Distinct 3rd party identifer as obtained from preta.eu-registration
+        required: false
+        schema:
+          type: string
+      - name: X-Correlation-Id
+        in: header
+        description: Request identifier to trace a request route across the subsystems.
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Get all custody account's transactions
+      description: Provides a simple list of all custody account transactions visible
+        according to the calling party's permissions.
+      operationId: getAllCuacTransactions
+      parameters:
+        - name: cuacId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: orderId
+          in: query
+          description: The implementation internal identifier, session based
+          required: false
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: positionId
+          in: query
+          description: The implementation internal identifier, session based
+          required: false
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: page
+          in: query
+          description: The page number.
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 0
+        - name: size
+          in: query
+          description: The number of custody account positions per page.
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/CustodyAccountTransactionPageDto"
+        "400":
+          description: Bad request
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: CUAC_TRANSACTIONS_BAD_REQUEST,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/transactions"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: CUAC_TRANSACTIONS_UNAUTHORIZED,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/transactions"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: CUAC_TRANSACTIONS_NOT_FOUND,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/transactions"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/transactions"
+                }]
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/cuac#read"
+  "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/transactions/{transactionId}":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+      - name: tppIdParam
+        in: header
+        description: Distinct 3rd party identifer as obtained from preta.eu-registration
+        required: false
+        schema:
+          type: string
+      - name: X-Correlation-Id
+        in: header
+        description: Request identifier to trace a request route across the subsystems.
+        required: false
+        schema:
+          type: string
+    get:
+      summary: Get a custody account's transaction
+      description: Provides a custody account's transaction.
+      operationId: getCuacTransaction
+      parameters:
+        - name: cuacId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: transactionId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/CustodyAccountTransactionDto"
+        "400":
+          description: Bad request
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: CUAC_TRANSACTION_BAD_REQUEST,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/transactions/{transactionId}"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: CUAC_TRANSACTION_UNAUTHORIZED,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/transactions/{transactionId}"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: CUAC_TRANSACTION_NOT_FOUND,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/transactions/{transactionId}"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/hal+json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/cuacs/{tenantId}/v1/cuacs/{cuacId}/transactions/{transactionId}"
+                }]
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/cuac#read"
+servers:
+  - url: //api.crealogix.com/
+components:
+  securitySchemes:
+    OIDC:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://api.crealogix.com/oauth/authorize
+          scopes:
+            "https://api.crealogix.com/assets/cuac#read": View custody account
+  schemas:
+    AmountDto:
+      type: object
+      required:
+        - currencyIsoCode
+        - value
+      properties:
+        currencyIsoCode:
+          description: currency code (ISO 4217).
+          type: string
+          example: CHF
+        value:
+          type: number
+          format: double
+          description: unformatted value of the amount
+          example: 2303.56
+    CustodyAccountDto:
+      description: >-
+        The custody account.
+
+        * valueCustodyCurrency  : is the value of the custody account in the account's currency.
+
+        * valueCustomerCurrency : is the value of the custody account in the customer preferred currency.
+
+        * valuePortfolioCurrency: is the value of the custody account in the portfolio's currency.
+
+        * yearEndValue          : is the last end of year value of the custody account in the account's currency.
+      type: object
+      required:
+        - id
+      properties:
+        custodyAccountNumber:
+          description: arbitrary, business related, unique bank identification number.
+          type: string
+          example: 123456-ABC
+        id:
+          $ref: "#/components/schemas/Identifier"
+        lastChangeAt:
+          description: The date of the last valuation, ISO 8601 date and time.
+          type: string
+          format: date-time
+          example: 20180515T092000
+        valueCustodyCurrency:
+          $ref: "#/components/schemas/AmountDto"
+        valueCustomerCurrency:
+          $ref: "#/components/schemas/AmountDto"
+        valuePortfolioCurrency:
+          $ref: "#/components/schemas/AmountDto"
+        yearEndValue:
+          $ref: "#/components/schemas/AmountDto"
+    CustodyAccountListDto:
+      description: List of custody accounts.
+      type: object
+      properties:
+        cuacs:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustodyAccountDto"
+    CustodyAccountPageDto:
+      description: Paging element for custody accounts.
+      type: object
+      required:
+        - page
+      properties:
+        _embedded:
+          $ref: "#/components/schemas/CustodyAccountListDto"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+    CustodyAccountPositionDto:
+      description: |-
+        A positon of a custody account.
+        * amount: amount in the unit defined by the security.
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: "#/components/schemas/Identifier"
+        amount:
+          $ref: "#/components/schemas/AmountDto"
+        calculationFrom:
+          description: date and time of the valuation, ISO 8601 date and time
+          type: string
+          format: date-time
+          example: 20180515T102000
+        exportTime:
+          description: date and time when the data was exported by the banking system, ISO
+            8601 date and time.
+          type: string
+          format: date-time
+          example: 20180515T102500
+        maturityDate:
+          description: maturity date, ISO 8601 date.
+          type: string
+          format: date
+          example: 20180515
+        salePermitted:
+          description: sale permission, true if permitted, otherwise false.
+          type: boolean
+          example: true
+        timeToMaturity:
+          description: time to maturity in days.
+          type: integer
+          format: int32
+    CustodyAccountPositionListDto:
+      description: List of custody account positions.
+      type: object
+      properties:
+        positions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustodyAccountPositionDto"
+    CustodyAccountPositionPageDto:
+      description: Paging element for custody account's positions.
+      type: object
+      required:
+        - page
+      properties:
+        _embedded:
+          $ref: "#/components/schemas/CustodyAccountPositionListDto"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+    CustodyAccountTransactionDto:
+      description: |-
+        A transaction of a custody account.
+        * amount  : transaction amount in the unit defined by the security.
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          $ref: "#/components/schemas/Identifier"
+        amount:
+          $ref: "#/components/schemas/AmountDto"
+        bookedAt:
+          description: Booking date, ISO 8601 date
+          type: string
+          format: date
+          example: 20180515
+        bookingText:
+          description: Transaction description.
+          type: string
+          example: Transfer
+        debitCreditCode:
+          $ref: "#/components/schemas/DebitCreditCodeType"
+        narrative:
+          description: may be a lomg text containing the transaction details.
+          type: string
+          example: DEUTSCHE ELEKTROAPPARATUR, OBENSTRASSE 4 MUNCHEN, OCMT/EUR1088.41,
+            CHGS/SHA/EUR20,00, FAKTURA 333/2018
+        narrativeTextType:
+          $ref: "#/components/schemas/NarrativeTextType"
+        transactionKey:
+          description: Unique transaction key of the banking system.
+          type: string
+          example: QWERTZUIOPASDFGHJKLYXCVBNM1234567890
+        transactionNumber:
+          description: Unique identification of the custody account transaction.
+          type: string
+          example: 20180515T152621
+        valueDate:
+          description: value date, ISO 8601 date.
+          type: string
+          format: date
+          example: 20180515
+    CustodyAccountTransactionListDto:
+      description: List of custody account's transactions.
+      type: object
+      properties:
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/CustodyAccountTransactionDto"
+    CustodyAccountTransactionPageDto:
+      description: Paging element for custody account's transactions.
+      type: object
+      required:
+        - page
+      properties:
+        _embedded:
+          $ref: "#/components/schemas/CustodyAccountTransactionListDto"
+        page:
+          $ref: "#/components/schemas/PageMetadata"
+    DebitCreditCodeType:
+      description: |-
+        Type of custody account transaction.
+        IRRELEVANT means that it is not relevant for the balance (e.g. coupons).
+      type: string
+      enum:
+        - CREDIT
+        - DEBIT
+        - IRRELEVANT
+      example: CREDIT
+    NarrativeTextType:
+      description: formatting/origin of the narrative.
+      type: string
+      enum:
+        - ASCII
+        - HTML
+        - URL
+        - XML
+    Identifier:
+      description: Identifier object
+      type: object
+      example: 123456789
+    Link:
+      type: object
+      required:
+        - href
+      properties:
+        href:
+          type: string
+          example: /assets/portfolios/{tenantId}/v1/portfolios?page=0&size=10
+        templated:
+          type: boolean
+          example: false
+    PageMetadata:
+      description: The summary of paging.
+      type: object
+      properties:
+        number:
+          type: integer
+          format: int64
+          example: 0
+        size:
+          type: integer
+          format: int64
+          example: 4
+        totalElements:
+          type: integer
+          format: int64
+          example: 10
+        totalPages:
+          type: integer
+          format: int64
+          example: 5
+    ResponseStatusDto:
+      description: Generic response status object.
+      type: object
+      required:
+        - _timestamp
+        - _status
+        - _messages
+      properties:
+        _timestamp:
+          description: The exact date and time when the response was received, ISO 8601 date and time.
+          type: string
+          format: date-time
+        _status:
+          description: Shows if the message was successful or contains errors. This is
+            mostly helpful for early processing by javascript clients. Status
+            depends also on HTTP-Status codes (HTTP-Code != 2xx = false).
+          type: boolean
+        _messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatusMessageDto"
+    StatusMessageDto:
+      type: object
+      description: Common response message object (Optional for success messages).
+      required:
+        - code
+        - category
+        - text
+        - path
+      properties:
+        code:
+          description: Short Code describing the message.
+          type: string
+        category:
+          $ref: "#/components/schemas/StatusMessageCategoryType"
+        text:
+          type: string
+          description:  The verbose message text.
+        path:
+          description: >-
+            * JSON path for field validation. If not set, the message is a
+            global message. If this field is set the text contains the field
+            specific message.
+
+            * Elements of the JSON-structure will be separated by "." and arrays will be represented with [].
+          type: string
+    StatusMessageCategoryType:
+      description: Category, which defines the severity of the message.
+      type: string
+      enum:
+        - NORMAL
+        - INFO
+        - SUCCESS
+        - ERROR
+        - WARN

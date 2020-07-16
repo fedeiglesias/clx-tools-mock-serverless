@@ -1,0 +1,2248 @@
+openapi: 3.0.0
+info:
+  description: >
+    CREALOGIX Digital Banking Hub: Asset Account API
+
+
+    **Accounts-API** offers access to account data and transactions.
+
+    Information regarding creditcards are *NOT* part of this API. Those will be found in a specific **Creditcards-API**.
+
+    # HTTP Headers #
+
+    The __X-Correlation-Id__ header is not any more part of this specification. The header still exists but is handled by a specific node (e.g Gateway) of the runtime environment. 
+
+    # Paging #
+
+    If the result of request is a list, it may be split in pages using the __size__ parameter.
+
+    In this case the result provides the standard HAL page __resource links__ (__first__, __last__, __next__, __previous__ and __self__). A __page meta data__ summary (__page number__, __page size__, __total number of pages__ and __total number of items__) is also provided.
+
+    # Tenant ID #
+
+    The tenant identifier should be a human readable string. For Crealogix could be CLXN. This identifier should be mapped internally by the implementation if required.
+
+
+
+    # Accounts - general entry points #
+
+    As Entrypoint or for unspecific queries a request to `/accounts`-URL delivers a list of all accounts accessible by the authorized contract. `/accounts` returns metadata (such as account number, alias) for each account as well as HAL-Links with URLs to more detailled APIs, see below.
+
+
+    With `/transactions` also an unspecific request for all transactions of all accessible accounts can be placed.
+
+    # Account - specific requests #
+
+    Instead of requesting list of all available accounts, a specific account can be accessed by using the *accountId* of this account. Please be aware, that all Ids are session specific and will change from one session to the other (for details see general API concepts documentation).
+
+    With a specific *accountId* the following endpoints are available
+
+     - `/accounts/{accountId}` delivering metadata of the specific account
+
+     - `/accounts/{accountId}/balance` presenting the balance and available amount for the specific account
+
+     - `/accounts/{accountId}/permissions` presenting allowed actions for the authorized contract
+
+     - `/accounts/{accountId}/transactions` presenting account transactions (further detail below)
+
+     - `/transactions/{transactionId}` presenting a transaction (further detail below)
+
+     ## Technical Notes ##
+
+     Due to some limitation of the swagger language the representation of balance and permission is not complete every where.
+
+     The balance and the permissions are part of the account object, but may be also retrieved separately.
+
+     As part of the account object balance and permission doesn't show any navigation link. 
+     The single permission set shows the link to the contract, since every set may depend from a different contract.
+
+     A call to the balance/permissions page instead shows all navigation links.
+
+     Swagger doesn't support two different views of the same object at the same time. The consequence is that the definition of the balance and permission pages do not have the ___link__ property, which __must__ however be present in the implementation.
+
+    # Transactions #
+
+    Using `/transactions/camt` all visible transactions may be retrieved as CAMT documents, grouped by account.
+
+    With `/accounts/{accountid}/transactions/camt` visible transactions of an account can be accessed as CAMT document(s).
+
+    Range of transaction can be limited by query parameters.
+
+    ## Transaction Balance Groups ##
+
+    The transactions must be grouped by day providing a daily balance. The daily balance may be expressed in any supported  currency, but the implementor (server side) must remember to properly convert any transaction expressed in a different  currency.
+
+    # Optional Features #
+
+    Optional features aren't mandatory, the product implementing this specification may obmit the implementation. 
+
+    * The optional features group together functions that aim to improve the presentation of bank data.
+
+    * The features proposed allow the end user to add a personal touch to the presentation layer.
+
+    ## Account Name ##
+
+    This feature allows the end user to change the bank standard account label.  A full implementation requires an additional persistence field.
+
+    ## Account Image ## 
+
+    This feature allows the end user to add a small image to the account.  This Avatar should help to better visualize the purpose of the account.
+
+
+    The implementation should limit the dimension of the upload.
+  version: 2.0.8
+  title: Asset Account API
+  contact:
+    name: Andreas Huck
+    email: andreas.huck@crealogix.com
+  license:
+    name: CREALOGIX
+paths:
+  /assets/accounts/{tenantId}/v4/accounts/search:
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Gets all accounts that matches the filters, sorted and paged as required.
+      description: >-
+        * Retrieves a sorted list of accounts the current user is alloewd to
+        see. 
+
+        * The list is divided into pages according to parameters or default.
+
+        * The list is sorted according to the information provided.  Fields are prioritized according to the order in which they are provided 
+      operationId: getAllAccountsWithSearch
+      parameters:
+        - name: page
+          in: query
+          description: The page number.
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 0
+        - name: size
+          in: query
+          description: The number of accounts per page.
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 10
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountSearchDto"
+        description: Extended search parameter and sort ordering
+      tags:
+        - Accounts
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/account#read"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountPageDto"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNTS_SEARCH_BAD_REQUEST,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/search"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNTS_SEARCH_UNAUTHORIZED,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/search"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNTS_SEARCH_NOT_FOUND,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/search"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/search"
+                }]
+  "/assets/accounts/{tenantId}/v4/accounts/{accountId}":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Gets a single account using the internal identifier.
+      operationId: getAccountById
+      parameters:
+        - name: accountId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      tags:
+        - Accounts
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/account#read"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountDto"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNT_BAD_REQUEST,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNT_UNAUTHORIZED,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNT_NOT_FOUND,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}"
+                }]
+  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/alias":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Restores the default label for the account name.
+      description: >-
+        * This is an optional feature that may be implemented by the provider.
+
+        * The user defined label for the account name should be replaced by the original one given by the bank.
+      operationId: deleteAccountName
+      parameters:
+        - name: accountId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      tags:
+        - Aliases
+      security:
+        - OIDC:
+            - https://api.crealogix.com/assets/account.name
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+        "400":
+          description: Bad request
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNT_ALIAS_BAD_REQUEST,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/alias"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNT_ALIAS_UNAUTHORIZED,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/alias"
+                }]
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNT_ALIAS_NOT_FOUND,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/alias"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/alias"
+                }]
+    post:
+      summary: Creates a new customer defined label for account name.
+      description: >-
+        * This is an optional feature that may be implemented by the provider.
+
+        * The label for the account name defined by the bank is replaced by the one defined by the customer.
+      operationId: setAccountName
+      parameters:
+        - name: accountId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AliasDto"
+        description: alias to be set
+        required: true
+      tags:
+        - Aliases
+      security:
+        - OIDC:
+            - https://api.crealogix.com/assets/account.name
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+        "400":
+          description: Bad request
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNT_ALIAS_BAD_REQUEST,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/alias"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNT_ALIAS_UNAUTHORIZED,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/alias"
+                }]
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNT_ALIAS_NOT_FOUND,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/alias"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/alias"
+                }]
+    put:
+      summary: Replaces the customer defined label for account name.
+      description: >-
+        * This is an optional feature that may be implemented by the provider.
+
+        * The label for the account name replaced by a new one defined by the customer.
+      operationId: updateAccountName
+      parameters:
+        - name: accountId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AliasDto"
+        description: alias to be updated
+        required: true
+      tags:
+        - Aliases
+      security:
+        - OIDC:
+            - https://api.crealogix.com/assets/account.name
+      responses:
+        "200":
+          description: OK
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+        "400":
+          description: Bad request
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNT_ALIAS_BAD_REQUEST,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/alias"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNT_ALIAS_UNAUTHORIZED,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/alias"
+                }]
+        "404":
+          description: Not Found
+          content:
+            "*/*":
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNT_ALIAS_NOT_FOUND,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/alias"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/alias"
+                }]
+  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/balance":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Gets the balance of an account using the internal identifier.
+      operationId: getAccountBalance
+      parameters:
+        - name: accountId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      tags:
+        - Accounts
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/account#read"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountBalanceDto"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNT_BALANCE_BAD_REQUEST,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/balance"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNT_BALANCE_UNAUTHORIZED,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/balance"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNT_BALANCE_NOT_FOUND,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/balance"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/balance"
+                }]
+  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/image":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Removes the account image.
+      description: |-
+        * This is an optional feature that may be implemented by the provider.
+        * The user defined image for the account must be deleted.
+      operationId: deleteAccountImage
+      parameters:
+        - name: accountId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      tags:
+        - Images
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/account#read"
+      responses:
+        "204":
+          description: No Content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNT_IMAGE_BAD_REQUEST,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/image"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNT_IMAGE_UNAUTHORIZED,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/image"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNT_IMAGE_NOT_FOUND,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/image"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/image"
+                }]
+    post:
+      summary: Adds the account image.
+      description: |-
+        * This is an optional feature that may be implemented by the provider.
+        * The user defined image for the account is uploaded.
+      operationId: addAccountImage
+      parameters:
+        - name: accountId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      requestBody:
+        $ref: "#/components/requestBodies/addAccountImage"
+      tags:
+        - Images
+      security:
+        - OIDC:
+            - https://api.crealogix.com/assets/account.image
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNT_IMAGE_BAD_REQUEST,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/image"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNT_IMAGE_UNAUTHORIZED,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/image"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNT_IMAGE_NOT_FOUND,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/image"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/image"
+                }]
+    put:
+      summary: Replaces the account image.
+      description: >-
+        * This is an optional feature that may be implemented by the provider.
+
+        * The user defined image for the account is uploaded and replaces the current one.
+      operationId: updateAccountImage
+      parameters:
+        - name: accountId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      requestBody:
+        $ref: "#/components/requestBodies/addAccountImage"
+      tags:
+        - Images
+      security:
+        - OIDC:
+            - https://api.crealogix.com/assets/account.image
+      responses:
+        "204":
+          description: No Content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNT_IMAGE_BAD_REQUEST,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/image"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNT_IMAGE_UNAUTHORIZED,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/image"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNT_IMAGE_NOT_FOUND,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/image"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/image"
+                }]
+  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/permissions":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Retrieve all permissions
+      description: Services delivers all contracts having permissions for the specific
+        account
+      operationId: getAccountPermissions
+      parameters:
+        - name: accountId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      tags:
+        - Accounts
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/account#read"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountPermissionResponseDto"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNT_PERMISSIONS_BAD_REQUEST,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/permissions"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNT_PERMISSIONS_UNAUTHORIZED,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/permissions"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNT_PERMISSIONS_NOT_FOUND,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/permissions"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/permissions"
+                }]
+  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/transactions/search":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+    post:
+      summary: Gets all sorted transaction of the account grouped by day.
+      operationId: getTransactionsByAccountWithSearch
+      description: >-
+        # List of account movements (simple) #
+
+        Delivers account movements for a specific account based on accountId and further criteria. By default last 30 days are taken into consideration for result. Movements are grouped by days and returned with daily balance (`transactionGroups`).
+
+        >*This request is limited to avoid transfer of personal data. For more detailled search request the `POST`-request should be used.*
+
+        ## Query parameter ##
+
+        ### page ###
+
+        Query parameter page can be used to navigate to specific pages, when original response did contain more then one page (depends on page size).
+
+        ### size ###
+
+        When a disctinct page size is desired, it can be specified here. be aware that large page sizes might impact performance. By default page size is set to 10.
+      parameters:
+        - name: page
+          in: query
+          description: The page number.
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 0
+        - name: size
+          in: query
+          description: The number of items per page.
+          required: false
+          schema:
+            type: integer
+            format: int64
+            default: 10
+        - name: accountId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransactionSearchDto"
+        description: technical id of specific account, session based
+        required: true
+      tags:
+        - Transactions
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/account.transaction#read"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransactionPageDto"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNT_TRANSACTIONS_SEARCH_BAD_REQUEST,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/transactions/search"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNT_TRANSACTIONS_SEARCH_UNAUTHORIZED,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/transactions/search"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNT_TRANSACTIONS_SEARCH_NOT_FOUND,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/transactions/search"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/transactions/search"
+                }]
+  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/transactions/camt":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+    get:
+      summary: CAMT Bank-to-Customer Document
+      operationId: getTransactionsByAccountAsCamt
+      description: >-
+        ## Supported Documents ##
+
+        CAMT.052 Bank-to-Customer Account Report
+
+        CAMT.053 Bank-to-Customer Statement
+
+        CAMT.054 Bank-to-Customer Debt/Credit Notification
+
+        ## Behaviour ##
+
+        Returns the CAMT document relating to the requested account if the uses has the access rights.
+
+        OAUTH2 authorization is required.
+      parameters:
+        - name: accountId
+          in: path
+          description: The implementation internal identifier, session based
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+        - name: isoType
+          in: query
+          description: XML export type (default CAMT053)
+          required: false
+          schema:
+            $ref: "#/components/schemas/IsoType"
+        - name: startDate
+          in: query
+          description: Transactions starting from booking date (RFC 3339 YYYY-MM-TT format)
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: transactions until booking date (RFC 3339 YYYY-MM-TT format). If not
+            specified, today is the default value.
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: camtDetailType
+          in: query
+          description: WDETAIL - with D-Level Transactions (Default); WODETAIL - without
+            D-Level Transactions
+          required: false
+          schema:
+            $ref: "#/components/schemas/CamtDetailType"
+      tags:
+        - CAMT
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/account.transaction#read"
+      responses:
+        "200":
+          description: Zipped file include one or many camt.052, camt.053 or camt.054
+            documents (files). This is name-pattern for the files
+            IsoType_IBAN-Nr.xml (e. g. CAMT053_DE60280501000123456789.xml)
+          content:
+            application/zip+camt:
+              schema:
+                type: string
+                format: binary
+        "204":
+          description: No transactions for this request parameters found. No content in response body.
+        "400":
+          description: Bad request
+          content:
+            application/zip+camt:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNT_TRANSACTIONS_CAMT_BAD_REQUEST,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/transactions/camt"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNT_TRANSACTIONS_CAMT_UNAUTHORIZED,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/transactions/camt"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/zip+camt:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNT_TRANSACTIONS_CAMT_NOT_FOUND,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/{accountId}/transactions/camt"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/{accountId}/transactions/camt"
+                }]
+  "/assets/accounts/{tenantId}/v4/accounts/transactions/{transactionId}":
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Gets single transaction
+      operationId: getTransactionById
+      parameters:
+        - name: transactionId
+          in: path
+          description: The implementation internal identifier, session based.
+          required: true
+          schema:
+            $ref: "#/components/schemas/Identifier"
+      tags:
+        - Transactions
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/account.transaction#read"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccountTransactionDto"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNT_TRANSACTION_BAD_REQUEST,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/transactions/{transactionId}"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNT_TRANSACTION_UNAUTHORIZED,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/transactions/{transactionId}"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNT_TRANSACTION_NOT_FOUND,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/transactions/{transactionId}"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/transactions/{transactionId}"
+                }]
+  /assets/accounts/{tenantId}/v4/accounts/transactions/camt:
+    parameters:
+      - name: tenantId
+        in: path
+        description: Tenant identifier
+        required: true
+        schema:
+          type: string
+    get:
+      summary: CAMT Bank-to-Customer Document
+      operationId: getTransactionsAsCamt
+      description: Returns transactions for accounts accessible by the user as CAMT-files.
+        OAUTH2 authorization is required.
+      parameters:
+        - name: accountId
+          in: query
+          description: >-
+            Possibility to specify one or more accounts. If there is no account
+            specified, transactions of all accounts accessible by the user will
+            be returned.
+
+            Returns a ZIP archive containing the CAMT document.
+          required: false
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/Identifier"
+        - name: isoType
+          in: query
+          description: export type (default CAMT053)
+          required: false
+          schema:
+            $ref: "#/components/schemas/IsoType"
+        - name: startDate
+          in: query
+          description: Transactions starting from booking date (RFC 3339 YYYY-MM-TT format)
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          description: transactions until booking date (RFC 3339 YYYY-MM-TT format). If not
+            specified, today is the default value.
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: camtDetailType
+          in: query
+          description: WDETAIL - with D-Level Transactions (Default); WODETAIL - without
+            D-Level Transactions
+          required: false
+          schema:
+            $ref: "#/components/schemas/CamtDetailType"
+      tags:
+        - CAMT
+      security:
+        - OIDC:
+            - "https://api.crealogix.com/assets/account.transaction#read"
+      responses:
+        "200":
+          description: Zipped file include one or many camt.052, camt.053 or camt.054
+            documents (files). For each account there is one XML file. This is
+            name-pattern for the files IsoType_IBAN-Nr.xml (e. g.
+            CAMT053_DE60280501000123456789.xml)
+          content:
+            application/zip+camt:
+              schema:
+                type: string
+                format: binary
+        "204":
+          description: No transactions for this request parameters found. No content in response body
+        "400":
+          description: Bad request
+          content:
+            application/zip+camt:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 400,
+                  text: ACCOUNTS_TRANSACTIONS_CAMT_BAD_REQUEST,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/transactions/camt"
+                }]
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 403,
+                  text: ACCOUNTS_TRANSACTIONS_CAMT_UNAUTHORIZED,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/transactions/camt"
+                }]
+        "404":
+          description: Not Found
+          content:
+            application/zip+camt:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 404,
+                  text: ACCOUNTS_TRANSACTIONS_CAMT_NOT_FOUND,
+                  path:  "/assets/accounts/{tenantId}/v4/accounts/transactions/camt"
+                }]
+        "500":
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResponseStatusDto"
+              example: 
+                _timestamp: "2019-05-28T13:54:46.679Z"
+                _status: false
+                _messages: [
+                {
+                  category: ERROR,
+                  code: 500,
+                  text: INTERNAL_SERVER_ERROR,
+                  path: "/assets/accounts/{tenantId}/v4/accounts/transactions/camt"
+                }]
+servers:
+  - url: //api.crealogix.com/
+    variables:
+      tenantId:
+        default: unknown
+components:
+  requestBodies:
+    addAccountImage:
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            properties:
+              image:
+                description: The file to upload.
+                type: string
+                format: binary
+            required:
+              - image
+  securitySchemes:
+    OIDC:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://api.crealogix.com/oauth/authorize
+          scopes:
+            "https://api.crealogix.com/assets/account.name": Grants the right to change the account name.
+            "https://api.crealogix.com/assets/account.image": Grants the right to change the account image.
+            "https://api.crealogix.com/assets/account#read": Grants the access to the account metadata.
+            "https://api.crealogix.com/assets/account.transaction#read": Grants read access to account transactions.
+  schemas:
+    TransactionSearchDto:
+      description: >-
+        Request body for searching transactions supporting sorting and criteria
+
+         ### startDate ###
+
+          This parameter defines the start booking date, that is used to filter
+          results. In this way resultset can be limited.
+
+          > *Hint: Should be used with `endDate`*
+
+          ### endDate ###
+
+          This parameter defines the last booking date of the desired resultset.
+
+          > *Hint: `endDate` should not be used without `startDate`.*
+
+          ### transactionFlow ###
+
+          This parameter defines the direction of transactions.
+
+          Following values are available:
+
+          - INCOMING (incoming payments)
+
+          - OUTGOING (outgoing payments)
+
+          - BOTH (all payments)
+
+
+          Is no value defined explictly, the default `BOTH` is taken into account.
+
+          ### transactionType ###
+
+          This parameter defines, whether only booked, unbooked or both types of
+          transactions are selected for report.
+
+          Following values are available:
+
+          - BOOKED
+
+          - UNBOOKED
+
+          - BOTH
+
+
+          Is no value defined explictly, the default `BOTH` is applied.
+      type: object
+      properties:
+        orderBy:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransactionOrderByFieldDto"
+        criteria:
+          $ref: "#/components/schemas/TransactionCriteriaDto"
+    TransactionCriteriaDto:
+      description: filter object used to search for transactions by given criteria
+      type: object
+      properties:
+        startDate:
+          description: transactions from a booking date RFC 3339 YYYY-MM-TT format)
+          type: string
+          format: date
+        endDate:
+          description: |-
+            transactions until booking date (RFC 3339 YYYY-MM-TT format). If not
+                        specified, today is the default value.
+          type: string
+          format: date
+        transactionFlow:
+          $ref: "#/components/schemas/TransactionFlowType"
+        transactionType:
+          $ref: "#/components/schemas/TransactionType"
+        amountFrom:
+          description: transactions having an amount of equals or biggern than amountFrom
+          type: number
+          format: double
+          example: 589.33
+        amountTo:
+          description: transactions having an amount of equals of smaller than amountTo
+          type: number
+          format: double
+          example: 2366.21
+        referenceText:
+          description: transaction's purpose
+          type: string
+        referenceNumber:
+          description: transaction's structured remittance information
+          type: string
+    TransactionFlowType:
+      description: In- and/or outgoing transactions.
+      type: string
+      enum:
+        - INCOMING
+        - OUTGOING
+        - BOTH
+      default: BOTH
+    TransactionType:
+      description: Booked and/or unbooked transactions
+      type: string
+      enum:
+        - BOOKED
+        - UNBOOKED
+        - BOTH
+      default: BOTH
+    AccountSearchDto:
+      description: Request body for searching accounts supporting sorting and different
+        criteria
+      allOf:
+        - type: object
+          properties:
+            orderBy:
+              type: array
+              items:
+                $ref: "#/components/schemas/AccountOrderByFieldDto"
+            criteria:
+              $ref: "#/components/schemas/AccountCriteriaDto"
+    AccountOrderByFieldDto:
+      description: Object composed of sort order and particualr field to order results by
+      type: object
+      properties:
+        field:
+          $ref: "#/components/schemas/AccountOrderableFieldType"
+        sortOrder:
+          $ref: "#/components/schemas/SortOrderType"
+    AccountOrderableFieldType:
+      description: Enum defining by which fields Accounts can be ordered by
+      type: string
+      enum:
+        - IBAN
+        - ACCOUNT_NUMBER
+        - AMOUNT
+      example: AMOUNT
+    AccountCriteriaDto:
+      description: Filter object used to search for accounts by defined criteria
+      type: object
+      properties:
+        accountName:
+          type: array
+          items:
+            type: string
+          description: Alias of the account, the customer may want to change it.
+          example:
+            - Vicky's child account.
+            - 1506 GBP
+        accountNumber:
+          type: array
+          items:
+            type: string
+          description: The product number or account number.
+          example:
+            - 1093891501
+            - 1093892501
+        accountType:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountType"
+        iban:
+          type: array
+          items:
+            type: string
+          description: One or multiple IBANs.
+          example:
+            - CH6112312001093891501
+            - DE2312312001093891501
+        id:
+          type: array
+          items:
+            $ref: "#/components/schemas/Identifier"
+          description: distinct identifier of the account
+          example:
+            - __ID__09f38a3f6c2cb0c2c5e59e1e0d55273cfb9eeefa673835d66874a495809c2b4b58b2dc4da233b9
+            - __ID__09f38a3f6c2cb0c2c5e59e1e0d55273cfb9eeefa643f30f31f7130baff5c01bd3f5fe08174343c
+        portfolioId:
+          type: array
+          items:
+            $ref: "#/components/schemas/Identifier"
+          description: unique identifier of the related portfolio.
+          example:
+            - null
+            - null
+        contractId:
+          type: array
+          items:
+            $ref: "#/components/schemas/Identifier"
+          description: The unique identifier of the related contract.
+          example:
+            - __ID__344bcb09cb8d91128c0052b4e16873ddba1df7ec4c5725dbbcd22bc60ed6455762d961d8b12127
+            - null
+    AccountDto:
+      description: >-
+        Account object.
+
+        * accountType - Type of the account, not all types might be supported by specific banks.
+
+        * balance - Information about the current value of the account.
+
+        * bank - The bank that manages the account.
+
+        * currency - The account default currency.
+
+        * permissions - All permissions the current user have on the account.
+      type: object
+      required:
+        - id
+        - accountNumber
+      properties:
+        accountName:
+          type: string
+          description: Alias of the account, the customer may want to change it.
+          example: Vicky's child account.
+        accountNumber:
+          type: string
+          description: The product number or account number.
+          example: 1093891501
+        accountType:
+          $ref: "#/components/schemas/AccountType"
+        advisorId:
+          $ref: "#/components/schemas/Identifier"
+        balances:
+          $ref: "#/components/schemas/AccountBalanceDto"
+        bank:
+          $ref: "#/components/schemas/OrganisationDto"
+        contractId:
+          $ref: "#/components/schemas/Identifier"
+        creditInterest:
+          type: number
+          format: double
+          description: actual credit interest
+          example: 0.1
+        currencyIsoCode:
+          description: currency code (ISO 4217).
+          type: string
+          example: CHF
+        customerName:
+          description: Name of the account owner
+          type: string
+        debtInterest:
+          type: number
+          format: double
+          description: actual debt interest
+          example: 9.2
+        defaultDebtAccount:
+          type: boolean
+          description: True if this is the default debt account for payments, otherwise
+            false.
+        description:
+          type: string
+          description: Description or purpose of the account.
+        formattedAccountNumber:
+          type: string
+          description: The formatted product number or formatted account number.
+          example: CLXN-12345678
+        iban:
+          type: string
+          description: The international bank account number.
+          example: CH6112312001093891501
+        id:
+          $ref: "#/components/schemas/Identifier"
+        overdraftInterest:
+          type: number
+          format: double
+          description: overdraft interest
+          example: 12
+        overdraftLimit:
+          type: number
+          format: double
+          description: the overdraft limit granted for the specific amount
+          example: 1200
+        permissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountPermissionDto"
+        portfolioId:
+          $ref: "#/components/schemas/Identifier"
+    AccountBalanceDto:
+      description: |-
+        * availableAmount, is the amount available for withdraw or transfer.
+        * balance, is the current value of the account.
+      type: object
+      required:
+        - availableAmount
+        - balance
+      properties:
+        availableAmount:
+          $ref: "#/components/schemas/AmountDto"
+        balance:
+          $ref: "#/components/schemas/AmountDto"
+    AccountListDto:
+      type: object
+      required:
+        - accountList
+      properties:
+        accountList:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountDto"
+    AccountPageDto:
+      allOf:
+        - $ref: "#/components/schemas/AccountListDto"
+        - type: object
+          required:
+            - page
+          properties:
+            page:
+              $ref: "#/components/schemas/PageMetadata"
+    AccountPermissionResponseDto:
+      description: Response body for account permissions
+      allOf:
+        - type: object
+          properties:
+            accountPermissions:
+              type: array
+              items:
+                $ref: "#/components/schemas/AccountPermissionDto"
+    AccountPermissionDto:
+      type: object
+      required:
+        - accountId
+        - contractId
+        - permissions
+      properties:
+        accountId:
+          $ref: "#/components/schemas/Identifier"
+        contractId:
+          $ref: "#/components/schemas/Identifier"
+        permissions:
+          type: array
+          description: permissions for the current user
+          items:
+            $ref: "#/components/schemas/PermissionType"
+    PermissionType:
+      description: permissions for the users.
+      type: string
+      enum:
+        - ACCO_READ_BAL
+        - ACCO_READ_PERM
+        - ACCO_READ_TX
+        - PAYM_TRANSFER
+        - PAYM_TRANSFER_INI
+        - PAYM_INTL
+        - PAYM_INTL_INI
+        - PAYM_DOM
+        - PAYM_DOM_INI
+        - PAYM_STN_ODR
+        - PAYM_STN_ODR_INI
+    AccountTransactionDto:
+      description: actual booking
+      type: object
+      required:
+        - accountId
+        - amount
+        - booked
+        - bookingdate
+        - id
+      properties:
+        id:
+          $ref: "#/components/schemas/Identifier"
+        accountId:
+          $ref: "#/components/schemas/Identifier"
+        valutaDate:
+          type: string
+          format: date
+          description: Valuta date of the transaction (RFC 3339 YYYY-MM-TT format)
+        bookingDate:
+          type: string
+          format: date
+          description: Booking date of the transaction (ISO 3339 YYYY-MM-TT format)
+        booked:
+          type: boolean
+          description: booked (true) or unbooked amount (false)
+        amount:
+          $ref: "#/components/schemas/AmountDto"
+        creditorAccount:
+          $ref: "#/components/schemas/TransactionAccountDto"
+        debtorAccount:
+          $ref: "#/components/schemas/TransactionAccountDto"
+        end2endID:
+          type: string
+          description: ID defined by initiator of transaction, format
+            '([A-Za-z0-9]|[+|\?|/|\-|:|\(|\)|\.|,|'|\p{Zs}])*'
+          maxLength: 35
+          minLength: 0
+        referenceNumber:
+          type: string
+          description: structured reference number (e.g. SEPA mandat reference)
+        bookingText:
+          type: string
+          description: Booking text as provided by bank
+        referenceText:
+          type: string
+          description: intended purpose
+      example:
+        id: 123456789
+        accountId: 123456
+        valutaDate: 2017-12-12
+        bookingDate: 2017-12-12
+        booked: true
+        amount:
+          $ref: "#/components/schemas/AmountDto/example"
+        creditorAccount:
+          $ref: "#/components/schemas/TransactionAccountDto/example"
+        debtorAccount:
+          $ref: "#/components/schemas/TransactionAccountDto/example"
+        end2endID: 12345
+        referenceNumber: "123"
+        bookingText: Transfer
+        referenceText: Pay Amazon's bill number 1234
+    AliasDto:
+      type: object
+      properties:
+        alias:
+          type: string
+          description: Alias of the account for the coresponding contract
+      example:
+        alias: Vicky's child account.
+    AccountType:
+      type: string
+      description: type of the account, not all types might be supported by specific banks
+      enum:
+        - CURRENT
+        - SAVINGS
+        - OTHER
+    AmountDto:
+      type: object
+      required:
+        - currencyIsoCode
+        - value
+      properties:
+        currencyIsoCode:
+          description: currency code (ISO 4217).
+          type: string
+        value:
+          type: number
+          format: double
+          description: unformatted value of the amount
+      example:
+        currencyIsoCode: CHF
+        value: 2303.56
+    TransactionOrderByFieldDto:
+      description: Object composed of sort order and particular field to order results by
+      type: object
+      properties:
+        field:
+          $ref: "#/components/schemas/TransactionOrderableFieldDto"
+        sortOrder:
+          $ref: "#/components/schemas/SortOrderType"
+    TransactionOrderableFieldDto:
+      description: Enum defining by which fields Transactions can be ordered by
+      type: string
+      enum:
+        - AMOUNT
+        - BOOKING_AT
+      example: AMOUNT
+    OrganisationDto:
+      type: object
+      properties:
+        bic:
+          type: string
+          description: Code allocated to a financial or non-financial institution by the
+            ISO 9362 Registration Authority, as described in ISO 9362 "Banking -
+            Banking telecommunication messages - Business identifier code
+            (BIC)".
+          example: CLXNCHZZMDB
+        institutionId:
+          type: string
+          description: Unique and unambiguous identifier of a clearing system member,
+            assigned by the system or system administrator (e.g. BC, BLZ).
+          example: 12312
+        name:
+          type: string
+          description: Name of institution
+          example: CLX EBS
+    SortOrderType:
+      type: string
+      description: Direction of the sort.
+      enum:
+        - ASC
+        - DESC
+    IsoType:
+      description: export type (default CAMT053)
+      type: string
+      enum:
+        - CAMT052
+        - CAMT053
+        - CAMT054
+      default: CAMT053
+    CamtDetailType:
+      description: WDETAIL - with D-Level Transactions (Default); WODETAIL - without
+            D-Level Transactions
+      type: string
+      enum:
+        - WDETAIL
+        - WODETAIL
+      default: WDETAIL
+    TransactionAccountDto:
+      description: Account-object for transactions
+      type: object
+      properties:
+        id:
+          $ref: "#/components/schemas/Identifier"
+        accountName:
+          type: string
+          description: Name of the account
+        account:
+          type: string
+          description: Account number or IBAN
+        bankCode:
+          type: string
+          description: Bank code or BIC
+      example:
+        id: 1234567890
+        accountName: Salary account
+        account: CH1234567890123456
+        bankCode: CLXBCH12XXX
+    TransactionBalanceGroupDto:
+      description: Group of transactions of a day for daily balance
+      type: object
+      required:
+        - date
+        - balance
+      properties:
+        balance:
+          $ref: "#/components/schemas/AmountDto"
+        date:
+          type: string
+          format: date
+          description: Date of the grouped transactions (RFC 3339 YYYY-MM-TT format)
+          example: 2017-12-12
+        transactions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountTransactionDto"
+    TransactionListDto:
+      description: List of grouped transactions
+      type: object
+      properties:
+        transactionGroups:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransactionBalanceGroupDto"
+    TransactionPageDto:
+      description: Paging elements for transactions
+      allOf:
+        - $ref: "#/components/schemas/TransactionListDto"
+        - type: object
+          required:
+            - transactionGroups
+            - page
+          properties:
+            page:
+              $ref: "#/components/schemas/PageMetadata"
+    Identifier:
+      description: Identifier object
+      type: object
+      example: 123456789
+    Link:
+      type: object
+      required:
+        - href
+      properties:
+        href:
+          type: string
+    PageMetadata:
+      type: object
+      required:
+        - number
+        - size
+        - totalElements
+        - totalPages
+      properties:
+        number:
+          type: integer
+          format: int64
+        size:
+          type: integer
+          format: int64
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int64
+    ResponseStatusDto:
+      description: Generic response status object.
+      type: object
+      required:
+        - _timestamp
+        - _status
+        - _messages
+      properties:
+        _timestamp:
+          description: The exact date and time when the response was received, ISO 8601 date and time.
+          type: string
+          format: date-time
+        _status:
+          description: Shows if the message was successful or contains errors. This is
+            mostly helpful for early processing by javascript clients. Status
+            depends also on HTTP-Status codes (HTTP-Code != 2xx = false).
+          type: boolean
+        _messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/StatusMessageDto"
+    StatusMessageDto:
+      type: object
+      description: Common response message object (Optional for success messages).
+      required:
+        - code
+        - category
+        - text
+        - path
+      properties:
+        code:
+          description: Short Code describing the message.
+          type: string
+        category:
+          $ref: "#/components/schemas/StatusMessageCategoryType"
+        text:
+          type: string
+          description:  The verbose message text.
+        path:
+          description: >-
+            * JSON path for field validation. If not set, the message is a
+            global message. If this field is set the text contains the field
+            specific message.
+
+            * Elements of the JSON-structure will be separated by "." and arrays will be represented with [].
+          type: string
+    StatusMessageCategoryType:
+      description: Category, which defines the severity of the message.
+      type: string
+      enum:
+        - NORMAL
+        - INFO
+        - SUCCESS
+        - ERROR
+        - WARN
