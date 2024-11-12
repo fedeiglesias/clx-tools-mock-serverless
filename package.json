@@ -26,6 +26,6 @@
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^9.0.1",
     "js-yaml": "^3.14.0",
-    "json-schema-faker": "^0.5.0-rcv.24"
+    "json-schema-faker": "^0.5.8"
   }
 }
